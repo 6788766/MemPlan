@@ -1,0 +1,63 @@
+Add {new_customer_name} as a new lead in the crm and assign them to {assigned_to_first_name}
+Book a half-hour meeting with {name} called 'Catch up on overdue tasks' at the earliest time I'm free tomorrowif they have any overdue tasks
+Can you check the percent growth of {natural_language_metric} since {day_of_week}? If it grew by more than {natural_language_metric_2}, plot both lines since then
+Can you make a line plot of the {most_or_least} popular traffic source since {natural_language_date}?
+Can you make a {plot_type} chart of {natural_language_metric} since {natural_language_date}?
+Can you plot the distribution of both {natural_language_metric} and {natural_language_metric_2} between {natural_language_date} and {natural_language_date_max}??
+Cancel all future meetings with {name}
+Cancel future {event_name} meetings
+Cancel my first meeting on {natural_language_date}
+Cancel my meetings on {next_day} {before_or_after} {natural_language_time}
+Cancel my next meeting with {name}
+Cancel the next {event_name} meeting
+Change the name of the last event on {natural_language_date} to {event_name}
+Check the percent growth of {natural_language_metric} since {day_of_week} and if was more than {natural_language_metric_2} make a backlog task called 'Improve {natural_language_metric_2}' for {name} on the front-end board with a deadline of next Friday
+Check the percent growth of {natural_language_metric} since {day_of_week} and if was more than {natural_language_metric_2} make a backlog task called 'Improve {natural_language_metric_2}' for {name} on the front-end board with a deadline of next Friday. Also schedule a half-hour meeting called 'Discuss {natural_language_metric}' with them at the first time I can do tomorrow
+Create a {duration} event called {event_name} on {natural_language_date} at {natural_language_time} with {name}
+Delete all my emails from {name} from the last {days} days
+Delete all of {assigned_to_first_name}'s customers that are in the {new_status_natural_language} stage and interested in {natural_language_product_interest} in the crm
+Delete my last email from {name}
+Delete {current_customer_name} from the crm
+Find the email from {natural_language_email_date} about {subject} and schedule a {natural_language_duration} meeting called '{subject}' at {natural_language_time} with the sender for {natural_language_event_date}.
+Forward all the emails from {name} last week about '{subject}' to {recipient_name}
+Forward my most recent email from {sender_name} to {recipient_name}
+Forward the last email about '{subject}' to {recipient_name1} and {recipient_name2}
+Forward the latest email about '{subject}' to {recipient_name}
+Give all the overdue tasks that {name_1} hasn't started to {name_2}.
+Give {new_assigned_to_first_name} all of {assigned_to_first_name}'s customers that are interested in {natural_language_product_interest} and are either qualified or in proposal in the crm
+If I don't have any meetings scheduled with {name} in the next {days} days, send them an email titled 'Catch up soon?' saying 'We have not caught up in a while - can you send some availability over next week?'
+If I haven't met with {name} in the last {duration} days, schedule a 30-minute meeting called 'catch-up' for my first free slot from tomorrow
+If I haven't met with {name} in the past {days} days, send them an email titled 'Catch up soon?' saying 'We haven't caught up in a while - can you send some availability over next week?'
+If we got more traffic from {traffic_source_1} than {traffic_source_2} during the last {n_weeks} weeks, make bar charts of both over that period
+If we haven't spoke to {current_customer_name} in the past fortnight book a 30-minute meeting with whoever is assigned to them called 'Update on {current_customer_name}' at the first time I'm free tomorrow
+If {name} has any overdue tasks, book a half hour meeting with them called 'Catch up on overdue tasks' at the earliest time I'm free tomorrow and send them an email titled 'Discuss overdue tasks' saying 'I noticed you have a few overdue tasks - let's catch up tomorrow.' Otherwise email them with 'Nice work keeping on top of your tasks this sprint!' titled 'Good work this sprint'
+If {name} has any overdue tasks, send them an email titled 'Overdue tasks' saying 'You have a few overdue tasks - can you update me on them?'. Otherwise email them with 'Nice work keeping on top of your tasks this sprint!' titled 'Good work this sprint'
+If {natural_language_metric} is more than {natural_language_growth_threshold} {higher_or_lower} than it was on {day_of_week}, make a line plot of it since then
+If {natural_language_metric} is more than {natural_language_growth_threshold} {higher_or_lower} than {natural_language_date}, make a line plot of it since then
+If {natural_language_metric} on {day_of_week} was more than {natural_language_growth_threshold} {higher_or_lower} than it was the previous {day_of_week}, make a line plot of it over that period.
+If {natural_language_metric} was {more_or_less} than {threshold} any time in the last {past_n_weeks} weeks, make a line plot of it since then
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date} delete all {assigned_to_first_name}'s leads in the CRM
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date} make a backlog task 'Improve {natural_language_metric}' for {name} on the front-end board with a deadline of next Friday otherwise send them an email titled 'Recent {natural_language_metric}' saying 'I noticed {natural_language_metric} has been stable, nice work!'
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date} make a backlog task called 'Improve {natural_language_metric}' for {name} on the front-end board with a deadline of next Friday
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date} make a backlog task called 'Improve {natural_language_metric}' on the front-end board with a deadline of next Friday for the person with the most completed front end tasks
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date} send an email to {sender} titled 'Update on {natural_language_metric}' saying 'I noticed {natural_language_metric} was {more_or_less} than {threshold} - can you update me?'
+If {natural_language_metric} was {more_or_less} than {threshold} at any time since {natural_language_date}, make a line plot of it since then
+If {sender_name} hasn't sent me any emails in the past {days} days, schedule a 30 minute meeting with them for {day_of_week} at {natural_language_time} called 'Catch up with {sender_name}'
+Make bar charts showing {natural_language_metric} and {natural_language_metric_2} since {date_min}
+Move all customers that haven't responded to a proposal for the {natural_language_product_interest} product in {weeks} weeks to lost in the crm
+Move all of {name}'s overdue tasks in the backlog to in progress
+Move all of {name}'s tasks that are in progress to in review
+Move any of {name}'s tasks that are in review to completed
+Plot the distribution of {natural_language_metric} on {natural_language_date}
+Push back my first meeting with {name} on {natural_language_date} by {duration}s
+Reassign all of {assigned_to_first_name}'s leads that are interested in {natural_language_product_interest} to {new_assigned_to_first_name} in the crm.
+Reassign {current_customer_name} to {assigned_to_first_name} in the crm
+Rename the next {event_name} meeting to {new_event_name}
+Reply to the latest email from {sender_name} with 'Got it, thank you!'
+Reply to {name}'s last email about '{subject}' with 'Thanks for the update - I will get back to you tomorrow.'
+Send an email to attendees of the first event on {natural_language_event_date}. Title it with the event name and tell them 'Remember to attend this event.'
+Send an email to {name} saying '{body}' and title it '{subject}'
+Take {name_1}'s most urgent task and reassign it to {name_2}.
+Update the status of {current_customer_name} to {new_status_natural_language} in the crm
+{name_1} is on vacation now so move all their unfinished tasks to the backlog.
+{name_1} is sick so reassign their in progress tasks to {name_2}.

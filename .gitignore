@@ -205,3 +205,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+.idea/
+docs/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+docs/
+
+# Task-agnostic graph extraction I/O
+artifacts/output/
+artifacts/input/*/*.csv
+artifacts/input/*/dataset/
+
+# Run logs
+artifacts/logs/log.txt
+
+baseline/tmp/*
+/artifacts/logs/work_decision_llm.jsonl
+

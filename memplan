@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# MemPlan — top-level dispatcher.
+#
+# Usage:
+#   memplan                         # Run the end-to-end pipeline.
+#                                   # Controlled by TASK / SPLIT / MODEL / MODE
+#                                   # environment variables (see task_helper/run.sh).
+#   memplan eval [args...]          # Run the TravelPlanner evaluator bridge.
+#   memplan baseline travel|work    # Run a baseline pipeline.
+#   memplan -h | --help             # Show this message.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+usage() {
+    sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+if [[ $# -eq 0 ]]; then
+    exec bash "$REPO_ROOT/task_helper/run.sh"
+fi
+
+subcmd="$1"; shift || true
+
+case "$subcmd" in
+    -h|--help|help)
+        usage
+        ;;
+    eval)
+        exec python -m task_helper.travel.runners.eval_bridge "$@"
+        ;;
+    baseline)
+        target="${1:-travel}"
+        case "$target" in
+            travel)
+                exec bash "$REPO_ROOT/baseline/run.sh"
+                ;;
+            work|workbench)
+                exec bash "$REPO_ROOT/baseline/workbench/run.sh"
+                ;;
+            *)
+                echo "memplan baseline: unknown target '$target' (expected: travel | work)" >&2
+                exit 2
+                ;;
+        esac
+        ;;
+    *)
+        echo "memplan: unknown subcommand '$subcmd'" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

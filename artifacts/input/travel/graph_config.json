@@ -1,0 +1,228 @@
+{
+  "default_task": "travel",
+  "task_field": null,
+  "task_mapping": {},
+  "tasks": [
+    {
+      "task_name": "travel",
+      "priority": 100,
+      "detector": { "type": "has_nonempty_field", "field": "annotated_plan" },
+      "plan_attr_map": {
+        "org": "org",
+        "dest": "dest",
+        "days": "days",
+        "visiting_city_number": "visiting_city_number",
+        "date": "date",
+        "people_number": "people_number",
+        "local_constraint": "local_constraint",
+        "budget": "budget",
+        "query": "query_text"
+      },
+      "phase_generator": {
+        "type": "days",
+        "days_field": "days",
+        "phase_type": "Day",
+        "key_template": "day_{i}",
+        "date_field": "date"
+      },
+      "before_edges": { "scope": "phase" },
+      "action_extractors": [
+        {
+          "type": "plan_field_phase_records",
+          "plan_field": "annotated_plan",
+          "phase_index_field": "days",
+          "phase_key_template": "day_{i}",
+          "slot_actions": [
+            {
+              "field": "__record__",
+              "action_type": "DayRecord",
+              "params": { "day": "$field:days", "current_city": "$field:current_city" },
+              "order_index": -100,
+              "skip_values": []
+            },
+            {
+              "field": "transportation",
+              "action_type": "Move",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "origin": null,
+                "destination": null,
+                "distance": null,
+                "cost": null,
+                "Flight Number": null,
+                "DepTime": null,
+                "ArrTime": null,
+                "ActualElapsedTime": null,
+                "FlightDate": null
+              },
+              "transforms": [
+                {
+                  "type": "regex_capture",
+                  "source_param": "_text",
+                  "pattern": "^Flight\\s+Number:\\s*(?P<flight_number>[^,]+),\\s*from\\s+(?P<origin>.+?)\\s+to\\s+(?P<destination>.+?),\\s*Departure\\s+Time:\\s*(?P<dep_time>[^,]+),\\s*Arrival\\s+Time:\\s*(?P<arr_time>[^,]+)$",
+                  "flags": ["IGNORECASE"],
+                  "group_to_param": {
+                    "flight_number": "Flight Number",
+                    "origin": "origin",
+                    "destination": "destination",
+                    "dep_time": "DepTime",
+                    "arr_time": "ArrTime"
+                  }
+                }
+              ],
+              "require_params": ["Flight Number"],
+              "attrs": { "mode": "Flight", "raw_transportation": "$value" },
+              "drop_params": ["_text"],
+              "order_index": 10
+            },
+            {
+              "field": "transportation",
+              "action_type": "Move",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "mode": null,
+                "origin": null,
+                "destination": null,
+                "duration": null,
+                "distance": null,
+                "cost": null
+              },
+              "transforms": [
+                {
+                  "type": "regex_capture",
+                  "source_param": "_text",
+                  "pattern": "^(?P<mode>Self-driving|Taxi),\\s*from\\s+(?P<origin>.+?)\\s+to\\s+(?P<destination>.+?),\\s*duration:\\s*(?P<duration>.+?),\\s*distance:\\s*(?P<distance>.+?),\\s*cost:\\s*(?P<cost>.+)$",
+                  "flags": ["IGNORECASE"],
+                  "group_to_param": {
+                    "mode": "mode",
+                    "origin": "origin",
+                    "destination": "destination",
+                    "duration": "duration",
+                    "distance": "distance",
+                    "cost": "cost"
+                  }
+                }
+              ],
+              "require_params": ["mode"],
+              "attrs": { "mode": "$param:mode", "raw_transportation": "$value" },
+              "drop_params": ["_text", "mode"],
+              "order_index": 10
+            },
+            {
+              "field": "breakfast",
+              "action_type": "Eat",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "Name": null,
+                "Average Cost": null,
+                "Cuisines": null,
+                "Aggregate Rating": null,
+                "City": null
+              },
+              "transforms": [
+                { "type": "regex_capture", "source_param": "_text", "pattern": "^(?P<Name>.*?),\\s*(?P<City>[^,]+)$" }
+              ],
+              "attrs": { "slot": "breakfast" },
+              "drop_params": ["_text"],
+              "order_index": 20
+            },
+            {
+              "field": "lunch",
+              "action_type": "Eat",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "Name": null,
+                "Average Cost": null,
+                "Cuisines": null,
+                "Aggregate Rating": null,
+                "City": null
+              },
+              "transforms": [
+                { "type": "regex_capture", "source_param": "_text", "pattern": "^(?P<Name>.*?),\\s*(?P<City>[^,]+)$" }
+              ],
+              "attrs": { "slot": "lunch" },
+              "drop_params": ["_text"],
+              "order_index": 21
+            },
+            {
+              "field": "dinner",
+              "action_type": "Eat",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "Name": null,
+                "Average Cost": null,
+                "Cuisines": null,
+                "Aggregate Rating": null,
+                "City": null
+              },
+              "transforms": [
+                { "type": "regex_capture", "source_param": "_text", "pattern": "^(?P<Name>.*?),\\s*(?P<City>[^,]+)$" }
+              ],
+              "attrs": { "slot": "dinner" },
+              "drop_params": ["_text"],
+              "order_index": 22
+            },
+            {
+              "field": "attraction",
+              "action_type": "Visit",
+              "skip_values": ["-"],
+              "split": { "delimiter": ";", "trim": true, "drop_empty": true },
+              "params": {
+                "_text": "$value",
+                "Name": null,
+                "Latitude": null,
+                "Longitude": null,
+                "Address": null,
+                "Phone": null,
+                "Website": null,
+                "City": null
+              },
+              "transforms": [
+                { "type": "regex_capture", "source_param": "_text", "pattern": "^(?P<Name>.*?),\\s*(?P<City>[^,]+)$" }
+              ],
+              "drop_params": ["_text"],
+              "order_index": 30
+            },
+            {
+              "field": "accommodation",
+              "action_type": "Stay",
+              "skip_values": ["-"],
+              "params": {
+                "_text": "$value",
+                "NAME": null,
+                "price": null,
+                "room type": null,
+                "house_rules": null,
+                "minimum nights": null,
+                "maximum occupancy": null,
+                "review rate number": null,
+                "city": null
+              },
+              "transforms": [
+                { "type": "regex_capture", "source_param": "_text", "pattern": "^(?P<NAME>.*?),\\s*(?P<city>[^,]+)$" }
+              ],
+              "drop_params": ["_text"],
+              "order_index": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task_name": "default",
+      "priority": 0,
+      "detector": { "type": "always" },
+      "include_unmapped_plan_attrs": true,
+      "phase_generator": { "type": "single", "key": "main", "phase_type": "Main" },
+      "before_edges": { "scope": "phase" },
+      "action_extractors": [
+        { "type": "single_action", "phase_key": "main", "action_type": "RawRow", "params": { "row": "$row" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+You are creating an initial TravelPlanner plan template from a single dataset row.
+
+Return ONLY a JSON object matching the schema in {{SCHEMA_JSON}} (same keys and types).
+Do not output markdown or any extra text.
+
+Important constraints:
+  - Use ONLY information present in the input JSON (`org`, `dest`, `days`, `date`, `query`).
+  - Do NOT use tools, databases, web knowledge, memory graphs, or any other external knowledge.
+  - Do NOT guess missing details. If something is not explicitly supported by the input, leave it as null.
+
+Copy these fields from the input exactly into `plan`:
+  - org
+  - dest
+  - days
+  - date
+  - query
+
+If (and only if) the `query` explicitly mentions them, also fill these `plan` fields:
+  - people_number
+  - budget
+  - local_constraint (only the keys in the schema; leave unspecified constraints as null)
+Otherwise, keep them null.
+
+For `plan.local_constraint`, you MUST use these exact canonical values (do NOT output paraphrases/plurals):
+  - `transportation`: null OR "no flight" OR "no self-driving"
+      * map: "no flying", "avoid flights", "does not involve flying", "do not plan to travel by flight" → "no flight"
+      * map: "non-self-driving", "don't plan to self-drive", "do not plan to drive ourselves" → "no self-driving"
+  - `room type`: null OR "private room" OR "entire room"
+      * only set when the query explicitly asks for private/entire rooms (not based on other wording)
+      * do NOT put children/pets/parties/smoking/visitors here
+  - `house rule`: null OR one of {"children under 10","parties","pets","smoking","visitors"}
+      * children under 10: includes "kids", "young children", "allow children under the age of 10", "suitable for children under 10"
+      * parties: includes "allow parties", "conducive to hosting parties", "parties are allowed"
+      * pets: includes "pet-friendly", "bringing our pets", "pets allowed"
+      * smoking: includes "smoking permissible", "allow smoking"
+      * visitors: includes "allow visitors", "visitors allowed"
+  - `cuisine`: null OR a JSON array of strings, each exactly one of:
+      ["American","Chinese","French","Indian","Italian","Mediterranean","Mexican"]
+      * If cuisines are mentioned, output a JSON array (NOT a comma-separated string).
+      * Only include cuisines explicitly mentioned in the query; otherwise null.
+
+For `plan.visiting_city_number`:
+  - If the `query` mentions “N cities” (including word numbers like “two/three”), set it to N.
+  - Otherwise, set it to 1 (single-city trip).
+
+Then, fill in:
+  - `phases`: list of objects with keys:
+      * phase_key (string)
+      * phase_type (string)
+      * phase_index (int, 1-based)
+      * attrs (object; include date if available)
+    Create one per day (phase_key = "day_1", ..., phase_type = "Day", phase_index = 1..days).
+    If `plan.date` is provided, include it as `attrs.date` on each phase.
+  - `actions`: list of objects with keys:
+      * phase_key (string; which phase to attach to)
+      * action_type (string)
+      * params (object)
+      * attrs (object)
+      * order_index (int)
+    Create a minimal day-by-day skeleton using these action types:
+      * DayRecord (params: {day})
+      * Move (params: {origin, destination, distance, cost}; distance/cost may be null/unknown)
+      * Eat (attrs: {slot} where slot ∈ {breakfast,lunch,dinner})
+      * Visit
+      * Stay
+    For every action type, keep the full param key set shown in the examples/schema, but:
+      - only fill values that can be derived from (`org`, `dest`, `days`, `date`, `query`)
+      - leave tool-return fields (e.g., flight numbers, restaurant names, attraction names, prices) as null unless explicitly present in the `query`
+    Use `order_index` to encode within-day ordering when it's unambiguous:
+      DayRecord=-100, Move=10, breakfast=20, lunch=21, dinner=22, Visit=30, Stay=40.
+    If you add a return Move on the final day, prefer putting it at the end (e.g., order_index=50).
+    For a simple single-city trip:
+      - include a Move on day_1 (origin=org, destination=dest)
+      - include a Move on day_last (origin=dest, destination=org)
+
+    Meals on move days (important):
+      - A "move day" is any day whose DayRecord `current_city` contains "from ... to ...".
+      - On day_1 (arrival day), include ONLY `dinner` (omit breakfast and lunch).
+      - On day_last (departure day), include ONLY `breakfast` (omit lunch and dinner).
+      - For internal move days (multi-city within a state), keep meals minimal; prefer ONLY `dinner` (omit breakfast and lunch).
+      - On non-move days, include all three meals: breakfast, lunch, and dinner.
+    If the query suggests multi-city routing (e.g., “touring N cities in <dest>”):
+      - do NOT invent real city names
+      - use placeholders like CITY_1(dest), CITY_2(dest), ... for unknown city names
+      - keep additional Move actions minimal (e.g., one internal move between city slots)
+
+Example input row (JSON):
+{{EXAMPLE_INPUT_JSON}}
+
+Example output template (JSON):
+{{EXAMPLE_JSON}}
+
+Example multi-city input row (JSON):
+{{EXAMPLE_MULTICITY_INPUT_JSON}}
+
+Example multi-city output template (JSON):
+{{EXAMPLE_MULTICITY_JSON}}
+
+Input row (JSON):
+{{INPUT_JSON}}
+
+Schema (JSON):
+{{SCHEMA_JSON}}

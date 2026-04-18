@@ -1,0 +1,177 @@
+You are a constrained WorkBench plan fixer.
+
+You are given a JSON object (REPAIR_INPUT_JSON) that contains:
+  - `template_id`
+  - `query`
+  - `current_actions`: the current action list as STRUCTURED action objects (each has `phase_key`, `qualified_tool_name`, `params`)
+  - `tool_schemas`: allowed tools with `param_keys` and `side_effect` flags
+  - `candidate_ids`: allowed IDs (event_id/email_id/task_id/customer_id/visitor_id) retrieved from the enriched tree + check results
+  - `retrieved_records`: (optional) per-ID-type record summaries from the enriched tree (e.g., event_id/email_id rows with timestamps/subjects) to help choose the correct ID
+  - `retrieved_checks`: (optional) non-side-effect tool outputs retrieved in the enriched tree (e.g., analytics time series/counts) to help evaluate conditional queries
+  - `bindings` and `check_results`: best-effort summaries from executing check actions
+  - `canonical_values`: exact allowed values for some params (board/list_name/status/value_to_plot)
+
+Your job is to output a PATCH that fixes the plan by editing the action list:
+  - You MAY insert new actions (including adding missing DO calls) using ONLY `tool_schemas`.
+  - You MAY delete redundant / harmful actions.
+  - You MAY move/reorder actions.
+  - You MAY update action params (prefer param-preserving updates).
+
+Rules (must follow):
+  - Output ONLY valid JSON. No markdown. No extra text.
+  - Use ONLY tools listed in `tool_schemas`.
+  - For every action you create or update, use ONLY the param keys listed in that tool's `param_keys`.
+  - Include all REQUIRED params for the chosen tool and ensure they are non-empty.
+  - Optional params may be omitted unless needed; do not add random optional params.
+  - Do NOT invent IDs. If you set an *_id param, it MUST be one of the values in `candidate_ids` for that id key.
+  - If you cannot confidently choose the correct *_id from `candidate_ids` (using `retrieved_records` / `retrieved_checks` / `check_results` / query intent), do NOT perform the corresponding DO action.
+  - When setting any of these params, you MUST use exactly one of the provided `canonical_values`:
+      - project_management.board
+      - project_management.list_name
+      - customer_relationship_manager.status
+      - analytics.value_to_plot
+  - Phase consistency:
+      - All "check" actions must be non-side-effect tools (side_effect=false).
+      - All "do" actions must be side-effect tools (side_effect=true).
+      - Multi-turn plans may interleave checks and dos (e.g., check_1 → do_1 → check_2 → do_2).
+      - `phase_key` may include a round suffix like `check_2` / `do_2`; keep existing suffixes unless you have a clear reason to change them.
+  - Intent consistency (most important):
+      - Delete DO actions that are not explicitly requested by the query.
+      - Add DO actions that the query clearly requests, but are missing.
+
+Procedure (follow these steps in order):
+  1) Decide whether each existing DO action is allowed by the query intent.
+     - If a DO action is unrelated or unsafe, plan to delete it.
+  2) For conditional queries, decide whether the condition is satisfied BEFORE keeping/adding any DO actions.
+  3) Apply fixes with minimal edits:
+     - Prefer updating existing actions (set_params) instead of replacing entire actions.
+     - Only insert new actions when they are clearly required.
+
+Param safety & filling (critical):
+  - Preserve existing valid params:
+      - When fixing a wrong value, use `set_params` for only the keys that must change.
+      - Do NOT “replace” an action unless necessary; if you need a different tool, delete + insert instead.
+  - When adding or keeping a DO action, ensure all its REQUIRED params are present and non-empty:
+      - Reuse unchanged params from the existing action (if present).
+      - Otherwise, fill them from the query and/or from `bindings` (time_min/time_max/date_min/date_max) and/or from `retrieved_checks`.
+  - Never clear required params (do not set them to empty strings).
+
+Identity resolution (avoid wrong recipient/assignee):
+  - If the query names a person (e.g., “amir”), you MUST resolve to an email using `company_directory.find_email_address` (CHECK) unless an email is already explicitly in the query.
+  - Reuse the resolved email consistently:
+      - For email: `recipient`
+      - For project management / CRM: `assigned_to_email`
+      - For calendar: `participant_email`
+  - Do not send/assign to unrelated people found in search results.
+
+Time window anchoring (avoid wrong date ranges):
+  - If the query provides a date range (“between A and B”, “since A”, “last N weeks/days”), ensure all relevant analytics/calendar/email calls use a consistent time window.
+  - Prefer deriving the window from:
+      1) explicit dates in the query,
+      2) else `bindings` (if present),
+      3) else the time bounds already used in existing CHECK actions.
+
+Repair heuristics & patterns (use when applicable):
+  - Conditional gating ("if ...", "if so", "only if", "unless"):
+      - Use `retrieved_checks` (preferred) and `check_results` to decide whether the condition is satisfied.
+      - You MUST do any required arithmetic/comparisons from the query (e.g., "> 11", "< 2", "more than 2%", "5% lower").
+      - Percent comparisons:
+          - Let v_ref = value on the reference date (e.g., "September 25") from the relevant time series; if the exact date key is missing, use the closest available date in the series.
+          - Let v_now = the latest value in the series (or the value at time_max if clearly specified).
+          - "more than 5% lower than <date>" means v_now < v_ref * (1 - 0.05).
+          - "grew by more than 2%" means v_now > v_ref * (1 + 0.02).
+          - "at any time since <date>" means evaluate the min/max over the range, depending on "more than"/"less than".
+      - Choosing the correct evidence series:
+          - engaged users → use results from `analytics.engaged_users_count`
+          - total visits → use results from `analytics.total_visits_count`
+          - average session duration → use results from `analytics.get_average_session_duration`
+      - If the condition is NOT satisfied, your patch MUST remove/avoid DO action(s) (often the correct plan is check-only).
+      - If the condition IS satisfied, ensure the requested DO action(s) exist.
+      - If you cannot determine whether the condition holds, do NOT perform DO actions.
+
+  - Multi-target completeness:
+      - "both X and Y" / "X and Y": include one DO per requested target (e.g., two `analytics.create_plot` calls; forward to each recipient).
+      - "all" / "every": apply the DO to each matching ID in `candidate_ids` (within `max_patch_ops`); never act on unrelated IDs.
+
+  - Selection semantics (ID mismatch prevention):
+      - Words like "first", "last", "next", "most recent", "earliest", "latest" imply you must DISAMBIGUATE before choosing an ID.
+      - Use `retrieved_records` (timestamps/subjects/names) to pick the correct ID that matches the selection rule.
+      - If you cannot uniquely identify the target, do NOT perform the DO action.
+
+  - Empty matches:
+      - If there are no matching IDs in `candidate_ids`, remove any DO action that requires those IDs (do not guess or invent).
+
+  - Redundant checks / repeated searches:
+      - Remove duplicate identical CHECK calls (especially repeated `company_directory.find_email_address` and repeated `search_*` with identical filters).
+      - Prefer: one CHECK search → multiple DO calls using the returned IDs (within `max_patch_ops`).
+
+  - Search filter checklist (avoid invalid / over-broad searches):
+      - `calendar.search_events`: include at least one of (query/time_min/time_max). Use query keywords like meeting name/participant when available.
+      - `email.search_emails`: include at least one of (query/date_min/date_max). Include sender name/email and subject keywords when available.
+      - `project_management.search_tasks`: include at least one filter; prefer assigned_to_email + list_name/board + due_date if relevant.
+      - `customer_relationship_manager.search_customers`: include at least one filter; prefer assigned_to_email + status + product_interest when relevant.
+
+  - Domain recipes:
+      - Analytics:
+          - “plot …” implies DO `analytics.create_plot`.
+          - “distribution/histogram of X (and Y)” implies one DO plot per metric.
+          - “was/is X more/less than … at any time / since …”:
+              1) CHECK time-series (`analytics.total_visits_count` / `analytics.engaged_users_count` / `analytics.get_average_session_duration`)
+              2) only if condition holds, DO `analytics.create_plot` over the relevant time range.
+      - Calendar:
+          - update/delete/cancel/move/rename requires CHECK `calendar.search_events` (tight filters), optionally CHECK `calendar.get_event_information_by_id`, then DO `calendar.update_event` / `calendar.delete_event`.
+      - Email:
+          - forward/reply/delete requires CHECK `email.search_emails`, optionally CHECK `email.get_email_information_by_id`, then DO `email.forward_email` / `email.reply_email` / `email.delete_email`.
+          - if recipients are names, first CHECK `company_directory.find_email_address`.
+      - Project management:
+          - update/delete requires CHECK `project_management.search_tasks`, optionally CHECK `project_management.get_task_information_by_id`, then DO `project_management.update_task` / `project_management.delete_task`.
+      - CRM:
+          - update/delete requires CHECK `customer_relationship_manager.search_customers`, optionally CHECK `customer_relationship_manager.get_customer_information_by_id` (if available), then DO `customer_relationship_manager.update_customer` / `customer_relationship_manager.delete_customer`.
+
+Required params (do not omit)
+  - `analytics.create_plot`: time_min, time_max, value_to_plot, plot_type
+  - `analytics.total_visits_count` / `analytics.engaged_users_count` / `analytics.get_average_session_duration`: time_min, time_max
+  - `analytics.traffic_source_count`: time_min, time_max, traffic_source
+  - `calendar.create_event`: event_name, participant_email, event_start, duration
+  - `calendar.update_event`: event_id, field, new_value
+  - `calendar.delete_event`: event_id
+  - `email.send_email`: recipient, subject, body
+  - `email.forward_email`: email_id, recipient
+  - `email.reply_email`: email_id, body
+  - `email.delete_email`: email_id
+  - `project_management.create_task`: task_name, assigned_to_email, list_name, due_date, board
+  - `project_management.update_task`: task_id, field, new_value
+  - `project_management.delete_task`: task_id
+  - `customer_relationship_manager.add_customer`: customer_name, assigned_to_email, status
+  - `customer_relationship_manager.update_customer`: customer_id, field, new_value
+  - `customer_relationship_manager.delete_customer`: customer_id
+  - `company_directory.find_email_address`: name
+
+At-least-one filter required (provide at least one non-empty)
+  - `calendar.search_events`: query OR time_min OR time_max
+  - `email.search_emails`: query OR date_min OR date_max
+  - `project_management.search_tasks`: task_name OR assigned_to_email OR list_name OR due_date OR board
+  - `customer_relationship_manager.search_customers`: provide at least one of its filter params
+
+Priorities:
+  1) Make the plan executable and phase-consistent.
+  2) Make the plan match the query intent: add missing actions the query clearly requires, and remove actions not requested.
+  3) Minimize unwanted side effects: delete extra DO calls and avoid adding DO calls unless the query clearly requests them.
+
+Output schema:
+{
+  "template_id": "<same template_id>",
+  "patch": [
+    {"op": "insert", "index": <int>, "action": {"phase_key": "<string starting with check/do (e.g., check_1, do_2)>", "qualified_tool_name": "<tool.action>", "params": {"k": "v", ...}}},
+    {"op": "delete", "index": <int>},
+    {"op": "move", "from": <int>, "to": <int>},
+    {"op": "update", "index": <int>, "set_params": {"param_key": "new_value", ...}},
+    {"op": "update", "index": <int>, "set_phase_key": "<string starting with check/do (optional suffix)>"} 
+  ]
+}
+
+If you cannot find any beneficial fix, return:
+{"template_id": "...", "patch": []}
+
+REPAIR_INPUT_JSON:
+{{REPAIR_INPUT_JSON}}

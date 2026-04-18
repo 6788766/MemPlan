@@ -1,0 +1,167 @@
+You are creating an initial WorkBench plan template from a single dataset row.
+
+Return ONLY a JSON object matching the schema in {{SCHEMA_JSON}} (same keys and types).
+Do not output markdown or any extra text.
+
+Deterministic environment (for relative dates only):
+  - Current datetime is "2023-11-30 12:00:00"
+
+Important constraints:
+  - Use ONLY information present in the input JSON (especially `query` and `domains`) plus the deterministic current datetime above.
+  - Do NOT call tools, databases, web knowledge, memory graphs, or any other external knowledge.
+  - Do NOT guess missing details. If something cannot be derived from the input, leave it as null or a whole-value placeholder.
+
+Phases:
+  - Always produce exactly two phases:
+      1) `check` (phase_type="CheckRound", phase_index=1): read-only tool calls
+      2) `do`    (phase_type="DoRound",    phase_index=2): side-effect tool calls
+  - It is allowed for `check` or `do` to have zero actions, but prefer adding actions when the query clearly requires them.
+
+Actions:
+  - Each action is one tool call skeleton.
+  - Use `action_type` = the tool function name (without the domain prefix), e.g.:
+      * "search_emails", "send_email", "create_event", "update_customer", "create_plot", ...
+  - Put arguments under `params` with the exact parameter names used by that tool.
+  - For any parameter value not directly derivable from the query text, use null or a placeholder like "{name}" or "{date_min}".
+  - If a Do action requires an ID or email you don't have, add an earlier Check action to obtain it (e.g., `search_*`, `get_*_information_by_id`, `find_email_address`).
+  - Add helpful metadata under `attrs`:
+      * `tool_name`: one of {"calendar","email","analytics","project_management","customer_relationship_manager","company_directory"}
+      * `qualified_tool_name`: e.g. "calendar.create_event", "email.search_emails", ...
+      * `side_effect`: boolean (true for Do actions)
+  - Use `order_index` to encode ordering within each phase (0-based is fine). Keep it simple.
+
+Plan metadata (`plan.runs`):
+  - Add `runs` under `plan` (integer).
+    * `runs = 0` means "repeat Check→Do until the stop sign is reached" (open-ended), with a safety cap provided by the runner.
+      Use this when the query implies a batch operation such as "all / every / each / cancel all future / delete all / move all / reassign all",
+      especially because some search tools return at most 5 results per call.
+    * `runs > 0` means "run up to `runs` Check→Do cycles" (or fewer if the stop sign is reached early).
+      Use `runs = 1` for single-item or create-one tasks, and use `runs = k` when the query explicitly asks for exactly k items.
+
+Stop sign (for `runs = 0`):
+  - The multi-round loop is handled later (do NOT output multiple rounds here).
+  - Set `runs = 0` only when the intended Do actions should be repeated until the Check phase finds no remaining entities/IDs to act on
+    (e.g., the relevant `search_*` returns no results / no new IDs).
+
+Parameter formatting (critical: do not produce unparseable values):
+  - Deterministic "now":
+      * Treat the "Current datetime" given above as the only source of truth for relative dates/times (do NOT use real-world/system time).
+      * For open-ended ranges, the runner will interpret "{time_max}"/"{date_max}" as "yesterday" relative to that datetime.
+  - Do NOT embed placeholders inside date/datetime strings.
+      * BAD: "{year}-12-13", "{year}-12-13T00:00:00", "2023-{month}-01"
+      * OK: "{date_min}", "{time_max}", null
+  - Calendar datetimes (`time_min`, `time_max`, `event_start`):
+      * Use "YYYY-MM-DD HH:MM:SS" (preferred) or "YYYY-MM-DDTHH:MM:SS".
+      * If the query gives a date but no time, use "00:00:00" unless the query implies a specific time.
+      * Single-day window rule (very important):
+          - If the user says "on <DATE>" (e.g., "on December 4") and the intent is to search/select events on that day,
+            set `time_min` = "<DATE> 00:00:00" and `time_max` = "<DATE> 23:59:59" (same day).
+          - Do NOT extend `time_max` to the next day (BAD: "<DATE+1> 23:59:59") unless the user explicitly asks for a multi-day range.
+  - Date-only parameters (`date_min`, `date_max`, analytics `time_min/time_max`, `due_date`,
+    CRM `*_date_*`, `follow_up_by_*`, `follow_up_by`, `last_contact_date_*`):
+      * Use "YYYY-MM-DD".
+  - Relative date handling (derived from current datetime above):
+      * "today" => 2023-11-30
+      * "yesterday" => 2023-11-29
+      * "since <DATE>" => end date = 2023-11-29 (yesterday) unless the query explicitly asks to include today
+      * If the query omits the year (e.g., "since November 21"), infer year from current datetime (2023).
+
+Entity grounding + type safety (critical):
+  - Email addresses:
+      * Treat any parameter whose name implies an email address (e.g., contains "email" or is "recipient") as requiring a real email string like "first.last@atlas.com".
+      * If the query does NOT explicitly provide the email string, you MUST NOT guess it.
+        Instead, add an earlier Check action that resolves the email from the person’s name via the company directory,
+        then use that resolved value in downstream actions.
+      * Use a consistent whole-value placeholder for the resolved email (e.g., "{lena_email}", "{raj_email}"), not a partial placeholder inside a larger string.
+      * If multiple people are involved, do NOT pass a comma-separated list in one parameter. Emit one action per person.
+
+  - ID dependencies:
+      * If a later action needs an object ID (email_id/event_id/task_id/customer_id) and the query does not provide it,
+        add earlier Check actions that will retrieve it (search_* + optional get_*_information_by_id) and use the result downstream.
+
+  - Search query strings:
+      * Use plain keyword queries only. Do NOT use operator syntax like "from:NAME", "to:NAME", "subject:...".
+      * Selection intent (first/last/next/top-k):
+          - Do NOT over-filter the retrieval query. Prefer retrieving a complete candidate set using time/date windows + IDs,
+            then selecting the correct item by ordering (e.g., earliest/latest by timestamp) in downstream logic.
+          - Calendar: if the user asks for "first/earliest", "last/latest", or "next" on a date/range, set
+            `calendar.search_events.query` to the empty string "" (unfiltered) unless the user explicitly provides a specific
+            participant email/name to filter on. Do NOT use generic tokens like "meeting" as the query filter.
+          - Reminder: `calendar.search_events.query` must be a string; use "" for unfiltered, not null.
+
+  - `field` parameters (for get_*_information_by_id):
+      * Only use valid field names for that tool. Never invent fields like "id".
+      * Email fields: {"email_id","sender/recipient","subject","sent_datetime","body","inbox/outbox"}
+      * Calendar fields: {"event_id","event_name","participant_email","event_start","duration"}
+      * Project task fields: {"task_id","task_name","assigned_to_email","list_name","due_date","board"}
+
+Tool vocabulary (available action_type + params)
+Company directory (Check)
+  - find_email_address(name)                                                         [Check]
+
+Calendar (Check / Do)
+  - search_events(query, time_min, time_max)                                         [Check]
+  - get_event_information_by_id(event_id, field)                                     [Check]
+  - create_event(event_name, participant_email, event_start, duration)               [Do]
+  - update_event(event_id, field, new_value)                                         [Do]
+  - delete_event(event_id)                                                           [Do]
+
+Email (Check / Do)
+  - search_emails(query, date_min, date_max)                                         [Check]
+  - get_email_information_by_id(email_id, field)                                     [Check]
+  - send_email(recipient, subject, body)                                             [Do]
+  - delete_email(email_id)                                                           [Do]
+  - forward_email(email_id, recipient)                                               [Do]
+  - reply_email(email_id, body)                                                      [Do]
+
+Analytics (Check / Do)
+  - total_visits_count(time_min, time_max)                                           [Check]
+  - engaged_users_count(time_min, time_max)                                          [Check]
+  - traffic_source_count(time_min, time_max, traffic_source)                         [Check]
+  - get_average_session_duration(time_min, time_max)                                 [Check]
+  - get_visitor_information_by_id(visitor_id)                                        [Check]
+  - create_plot(time_min, time_max, value_to_plot, plot_type)                        [Do]
+
+  - Requirement:
+      * Any `analytics.create_plot` Do action must provide non-null `value_to_plot` and non-null `plot_type` (choose from the enum sets below).
+
+  - Analytics enum values (case-sensitive):
+      * traffic_source: {"direct","referral","search engine","social media"}
+      * plot_type: {"bar","line","scatter","histogram"}
+      * value_to_plot: {"total_visits","session_duration_seconds","user_engaged","visits_direct","visits_referral","visits_search_engine","visits_social_media"}
+
+Project management (Check / Do)
+  - search_tasks(task_name, assigned_to_email, list_name, due_date, board)            [Check]
+  - get_task_information_by_id(task_id, field)                                        [Check]
+  - create_task(task_name, assigned_to_email, list_name, due_date, board)             [Do]
+  - update_task(task_id, field, new_value)                                            [Do]
+  - delete_task(task_id)                                                              [Do]
+
+  - Project management enum values (case-sensitive):
+      * list_name: {"Backlog","In Progress","In Review","Completed"}
+      * board: {"Back end","Front end","Design"}
+
+CRM (customer_relationship_manager) (Check / Do)
+  - search_customers(customer_name, customer_email, product_interest, status, assigned_to_email,
+                    last_contact_date_min, last_contact_date_max, follow_up_by_min, follow_up_by_max)  [Check]
+  - add_customer(customer_name, assigned_to_email, status, customer_email, customer_phone,
+                 last_contact_date, product_interest, notes, follow_up_by)            [Do]
+  - update_customer(customer_id, field, new_value)                                    [Do]
+  - delete_customer(customer_id)                                                      [Do]
+
+  - CRM enum values (case-sensitive):
+      * status: {"Qualified","Won","Lost","Lead","Proposal"}
+      * product_interest: {"Software","Hardware","Services","Consulting","Training"}
+      * If the query implies a status disjunction (e.g., "Qualified or in Proposal"), emit separate `search_customers` actions per status (do NOT use a combined placeholder like "{qualified_or_in_proposal}").
+
+Example input row (JSON):
+{{EXAMPLE_INPUT_JSON}}
+
+Example output template (JSON):
+{{EXAMPLE_JSON}}
+
+Input row (JSON):
+{{INPUT_JSON}}
+
+Schema (JSON):
+{{SCHEMA_JSON}}

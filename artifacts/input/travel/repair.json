@@ -1,0 +1,50 @@
+{
+  "prompt_path": "artifacts/input/travel/repair_prompt.txt",
+  "unknown_constraint_policy": "include_all_slots",
+  "constraint_to_action_types": {
+    "Within Sandbox": ["Move", "Eat", "Visit", "Stay"],
+    "Complete Information": ["DayRecord", "Move", "Eat", "Visit", "Stay"],
+    "Within Current City": ["DayRecord", "Move", "Eat", "Visit", "Stay"],
+    "Reasonable City Route": ["DayRecord", "Move"],
+    "Diverse Restaurants": ["Eat"],
+    "Diverse Attractions": ["Visit"],
+    "Non-conf. Transportation": ["Move"],
+    "Minimum Nights Stay": ["Stay"],
+    "Budget": ["Move", "Eat", "Stay"],
+    "Room Rule": ["Stay"],
+    "Room Type": ["Stay"],
+    "Cuisine": ["Eat"],
+    "Transportation": ["Move"]
+  },
+  "candidate_summary": {
+    "include_meta_keys": [],
+    "max_row_keys": 50,
+    "max_value_chars": 200,
+    "row_keys_by_action_type": {
+      "Eat": ["Name", "City", "Average Cost", "Cuisines", "Aggregate Rating"],
+      "Stay": [
+        "NAME",
+        "city",
+        "price",
+        "room type",
+        "house_rules",
+        "minimum nights",
+        "maximum occupancy",
+        "review rate number"
+      ],
+      "Visit": ["Name", "City", "Address", "Website"],
+      "Move": [
+        "Flight Number",
+        "Price",
+        "DepTime",
+        "ArrTime",
+        "ActualElapsedTime",
+        "FlightDate",
+        "OriginCityName",
+        "DestCityName",
+        "Distance"
+      ],
+      "DayRecord": ["current_city"]
+    }
+  }
+}

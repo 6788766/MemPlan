@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "source_readme": "artifacts/input/travel/dataset/database/README.md",
+  "tool_costs": {
+    "Flights": 1.0,
+    "GoogleDistanceMatrix": 0.6449454884839599,
+    "Restaurants": 0.604618033916942,
+    "Attractions": 0.5657998412997308,
+    "Accommodations": 0.5627580106327518,
+    "CitySearch": 0.43115031672254
+  },
+  "views": [
+    {
+      "view_id": "tool::Attractions::Visit",
+      "tool": "Attractions",
+      "cost": 0.5657998412997308,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Visit",
+          "params": {
+            "Name": "{Name}",
+            "Latitude": "{Latitude}",
+            "Longitude": "{Longitude}",
+            "Address": "{Address}",
+            "Phone": "{Phone}",
+            "Website": "{Website}",
+            "City": "{City}"
+          }
+        }
+      }
+    },
+    {
+      "view_id": "tool::Restaurants::Eat",
+      "tool": "Restaurants",
+      "cost": 0.604618033916942,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Eat",
+          "params": {
+            "Name": "{Name}",
+            "Average Cost": "{Average Cost}",
+            "Cuisines": "{Cuisines}",
+            "Aggregate Rating": "{Aggregate Rating}",
+            "City": "{City}"
+          }
+        }
+      }
+    },
+    {
+      "view_id": "tool::Accommodations::Stay",
+      "tool": "Accommodations",
+      "cost": 0.5627580106327518,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Stay",
+          "params": {
+            "NAME": "{NAME}",
+            "price": "{price}",
+            "room type": "{room type}",
+            "house_rules": "{house_rules}",
+            "minimum nights": "{minimum nights}",
+            "maximum occupancy": "{maximum occupancy}",
+            "review rate number": "{review rate number}",
+            "city": "{city}"
+          }
+        }
+      }
+    },
+    {
+      "view_id": "tool::Flights::Move::Flight",
+      "tool": "Flights",
+      "cost": 1.0,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Move",
+          "params": {
+            "origin": "{OriginCityName}",
+            "destination": "{DestCityName}",
+            "distance": "{Distance}",
+            "cost": "{Price}",
+            "Flight Number": "{Flight Number}",
+            "DepTime": "{DepTime}",
+            "ArrTime": "{ArrTime}",
+            "ActualElapsedTime": "{ActualElapsedTime}",
+            "FlightDate": "{FlightDate}"
+          },
+          "mode": "Flight"
+        }
+      }
+    },
+    {
+      "view_id": "tool::GoogleDistanceMatrix::Move::Self-driving",
+      "tool": "GoogleDistanceMatrix",
+      "cost": 0.6449454884839599,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Move",
+          "params": {
+            "origin": "{origin}",
+            "destination": "{destination}",
+            "duration": "{duration}",
+            "distance": "{distance}",
+            "cost": "{cost}"
+          },
+          "mode": "Self-driving"
+        }
+      }
+    },
+    {
+      "view_id": "tool::GoogleDistanceMatrix::Move::Taxi",
+      "tool": "GoogleDistanceMatrix",
+      "cost": 0.6449454884839599,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "Move",
+          "params": {
+            "origin": "{origin}",
+            "destination": "{destination}",
+            "duration": "{duration}",
+            "distance": "{distance}",
+            "cost": "{cost}"
+          },
+          "mode": "Taxi"
+        }
+      }
+    },
+    {
+      "view_id": "tool::CitySearch::DayRecord",
+      "tool": "CitySearch",
+      "cost": 0.43115031672254,
+      "node_pattern": {
+        "type": "Action",
+        "attrs": {
+          "action_type": "DayRecord",
+          "params": {
+            "day": "{day}",
+            "current_city": "{current_city}"
+          }
+        }
+      },
+      "extractors": [
+        {
+          "type": "regex_capture",
+          "source_param": "current_city",
+          "pattern": "(?:.*\\bto\\s+)?(?P<city>[^()]+?)\\((?P<state>[^)]+)\\)\\s*$",
+          "flags": [
+            "IGNORECASE"
+          ],
+          "group_to_param": {
+            "city": "city",
+            "state": "state"
+          }
+        }
+      ]
+    }
+  ]
+}

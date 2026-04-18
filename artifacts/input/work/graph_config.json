@@ -1,0 +1,54 @@
+{
+  "default_task": "work",
+  "task_field": null,
+  "task_mapping": {},
+  "tasks": [
+    {
+      "task_name": "work",
+      "priority": 100,
+      "detector": { "type": "has_field", "field": "query" },
+      "plan_attr_map": {
+        "query": "query",
+        "base_template": "base_template",
+        "chosen_template": "chosen_template",
+        "domains": "domains",
+        "teacher_source": "teacher_source"
+      },
+      "phase_generator": {
+        "type": "check_do",
+        "check_key": "check",
+        "do_key": "do",
+        "check_phase_type": "CheckRound",
+        "do_phase_type": "DoRound"
+      },
+      "before_edges": { "scope": "phase" },
+      "allow_empty_phase": true,
+      "action_extractors": [
+        {
+          "type": "function_calls_field",
+          "field": "teacher_function_calls",
+          "fallback_field": "answer",
+          "check_phase_key": "check",
+          "do_phase_key": "do",
+          "include_raw_action": true,
+          "side_effect_tools": [
+            "calendar.create_event",
+            "calendar.delete_event",
+            "calendar.update_event",
+            "email.send_email",
+            "email.delete_email",
+            "email.forward_email",
+            "email.reply_email",
+            "analytics.create_plot",
+            "project_management.create_task",
+            "project_management.delete_task",
+            "project_management.update_task",
+            "customer_relationship_manager.update_customer",
+            "customer_relationship_manager.add_customer",
+            "customer_relationship_manager.delete_customer"
+          ]
+        }
+      ]
+    }
+  ]
+}

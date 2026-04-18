@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "match": {
+    "placeholder_regex": "^\\{[^{}]+\\}$",
+    "ignored_attr_paths": [
+      "phase_key",
+      "date",
+      "params.day"
+    ],
+    "nullify_substrings_by_path": {
+      "params.current_city": [
+        "CITY_"
+      ]
+    },
+    "context": {
+      "from_node_type": "Plan",
+      "attr_paths": [
+        "dest"
+      ],
+      "namespace": "plan",
+      "apply_to_node_types": [
+        "Phase",
+        "Action"
+      ]
+    }
+  },
+  "view_select": {
+    "required_edge_types": [
+      "hasAction"
+    ],
+    "ignored_edge_types": [
+      "before"
+    ],
+    "force_include_tool_variants": {
+      "enabled": true,
+      "action_types": []
+    }
+  },
+  "compose": {
+    "fetch_factory": "task_helper.travel.adapters:create_fetch",
+    "placeholder_expansion": {
+      "enabled": true,
+      "pattern": "CITY_\\d+\\((?P<state>[^)]+)\\)",
+      "state_city_map_path": "artifacts/input/travel/dataset/database/background/citySet_with_states.txt",
+      "max_expansions": 25,
+      "format": "{city}({state})"
+    },
+    "mode_map": {
+      "Self-driving": "driving",
+      "Taxi": "taxi"
+    },
+    "fallback_tool_priority": {
+      "Flights": 10,
+      "GoogleDistanceMatrix": 20
+    },
+    "fallback_tools_by_action_type": {
+      "Move": [
+        "Flights",
+        "GoogleDistanceMatrix"
+      ],
+      "Eat": [
+        "Restaurants"
+      ],
+      "Visit": [
+        "Attractions"
+      ],
+      "Stay": [
+        "Accommodations"
+      ],
+      "DayRecord": [
+        "CitySearch"
+      ]
+    },
+    "tool_handlers": [
+      {
+        "tool_view_id": "tool::Restaurants::Eat",
+        "kind": "dataframe_rows",
+        "fetch_method": "restaurants",
+        "args": {
+          "city": [
+            "action.params.City",
+            "plan.dest"
+          ]
+        },
+        "sort_by": [
+          "Average Cost"
+        ],
+        "cost_field": "Average Cost",
+        "meta_type": "restaurant",
+        "text_template": "{Name}, {City}",
+        "text_fallback": "Restaurant, {city}"
+      },
+      {
+        "tool_view_id": "tool::Accommodations::Stay",
+        "kind": "dataframe_rows",
+        "fetch_method": "accommodations",
+        "args": {
+          "city": [
+            "action.params.city",
+            "plan.dest"
+          ]
+        },
+        "sort_by": [
+          "price"
+        ],
+        "cost_field": "price",
+        "meta_type": "accommodation",
+        "text_template": "{NAME}, {city}",
+        "text_fallback": "Accommodation, {city}"
+      },
+      {
+        "tool_view_id": "tool::Attractions::Visit",
+        "kind": "dataframe_column",
+        "fetch_method": "attractions",
+        "args": {
+          "city": [
+            "action.params.City",
+            "plan.dest"
+          ]
+        },
+        "column": "Name",
+        "meta_type": "attraction",
+        "text_template": "{Name}, {city}"
+      },
+      {
+        "tool_view_id": "tool::Flights::Move::Flight",
+        "kind": "dataframe_rows",
+        "fetch_method": "flights",
+        "args": {
+          "origin": [
+            "action.params.origin",
+            "plan.org"
+          ],
+          "destination": [
+            "action.params.destination",
+            "plan.dest"
+          ],
+          "date": [
+            "phase.date",
+            "plan.date.0"
+          ]
+        },
+        "sort_by": [
+          "Price"
+        ],
+        "cost_field": "Price",
+        "meta_type": "flight",
+        "text_template": "Flight {Flight Number}: {origin} -> {destination} ({DepTime}-{ArrTime})"
+      },
+      {
+        "tool_view_ids": [
+          "tool::GoogleDistanceMatrix::Move::Self-driving",
+          "tool::GoogleDistanceMatrix::Move::Taxi"
+        ],
+        "kind": "dict_single",
+        "fetch_method": "distance",
+        "args": {
+          "origin": [
+            "action.params.origin",
+            "plan.org"
+          ],
+          "destination": [
+            "action.params.destination",
+            "plan.dest"
+          ],
+          "mode": [
+            "view.mode"
+          ]
+        },
+        "meta_type": "distance",
+        "text_template": "{mode}: {origin} -> {destination} (duration={duration}, distance={distance})"
+      },
+      {
+        "tool_view_id": "tool::CitySearch::DayRecord",
+        "kind": "placeholder_expansion",
+        "args": {
+          "current_city": [
+            "action.params.current_city"
+          ]
+        },
+        "meta_type": "city_search",
+        "text_template": "DayRecord: {current_city}"
+      }
+    ]
+  },
+  "twin_track": {
+    "required_action_types": [
+      "DayRecord"
+    ],
+    "hooks": {
+      "online_step": "task_helper.travel.twin_track_hooks:online_step",
+      "fill_action": "task_helper.travel.twin_track_hooks:fill_action",
+      "build_eval_plan": "task_helper.travel.twin_track_hooks:build_eval_plan",
+      "evaluate": "task_helper.travel.twin_track_hooks:evaluate"
+    }
+  }
+}

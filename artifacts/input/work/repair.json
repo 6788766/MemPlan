@@ -1,0 +1,23 @@
+{
+  "repair_mode": "call_patch",
+  "prompt_path": "artifacts/input/work/repair_prompt.txt",
+  "max_patch_ops": 12,
+  "allow_insert_actions": true,
+  "allow_delete_actions": true,
+  "allow_move_actions": true,
+  "id_param_keys": ["event_id", "email_id", "task_id", "customer_id", "visitor_id"],
+  "canonical_values": {
+    "project_management.board": ["Front end", "Back end", "Design"],
+    "project_management.list_name": ["Backlog"],
+    "customer_relationship_manager.status": ["Lead", "Qualified", "Proposal", "Won", "Lost"],
+    "analytics.value_to_plot": [
+      "total_visits",
+      "session_duration_seconds",
+      "user_engaged",
+      "visits_direct",
+      "visits_referral",
+      "visits_search_engine",
+      "visits_social_media"
+    ]
+  }
+}

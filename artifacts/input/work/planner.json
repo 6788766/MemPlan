@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "match": {
+    "placeholder_regex": "^\\{[^{}]+\\}$",
+    "ignored_attr_paths": [
+      "qualified_tool_name"
+    ],
+    "nullify_substrings_by_path": {},
+    "force_fallback_substrings_by_path": {},
+    "context": {
+      "from_node_type": "Plan",
+      "attr_paths": [],
+      "namespace": "plan",
+      "apply_to_node_types": []
+    }
+  },
+  "view_select": {
+    "required_edge_types": [
+      "hasAction"
+    ],
+    "ignored_edge_types": [
+      "before"
+    ],
+    "force_include_tool_variants": {
+      "enabled": true,
+      "action_types": []
+    }
+  },
+  "compose": {
+    "fetch_factory": null,
+    "placeholder_expansion": {
+      "enabled": false,
+      "pattern": "",
+      "state_city_map_path": null,
+      "max_expansions": 0,
+      "format": "{city}({state})"
+    },
+    "mode_map": {},
+    "fallback_tool_priority": {},
+    "fallback_tools_by_action_type": {},
+    "tool_handlers": []
+  },
+  "twin_track": {
+    "required_action_types": [],
+    "hooks": {
+      "online_step": "task_helper.work.twin_track_hooks:online_step",
+      "fill_action": "task_helper.work.twin_track_hooks:fill_action",
+      "evaluate": "task_helper.work.twin_track_hooks:evaluate"
+    }
+  },
+  "multi_round": {
+    "hooks": {
+      "adapter": "task_helper.work.multi_round:make_adapter"
+    }
+  }
+}

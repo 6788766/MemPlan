@@ -1,0 +1,22 @@
+{
+  "gpt-5.2": {
+    "prompt_cache_hit": 0.175,
+    "prompt_cache_miss": 1.75,
+    "output": 14
+  },
+  "gpt-5-mini": {
+    "prompt_cache_hit": 0.03,
+    "prompt_cache_miss": 0.25,
+    "output": 2.00
+  },
+  "gpt-5-nano": {
+    "prompt_cache_hit": 0.01,
+    "prompt_cache_miss": 0.05,
+    "output": 0.40
+  },
+  "deepseek-chat": {
+    "prompt_cache_hit": 0.028,
+    "prompt_cache_miss": 0.28,
+    "output": 0.42
+  }
+}
