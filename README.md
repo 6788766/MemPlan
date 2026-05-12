@@ -38,32 +38,6 @@ MemPSel gives a `1 − (1 − 1/k)^k` approximation for plan-view selection;
 MemPAssem runs in PTIME; MemPOpt achieves a bounded-error top-`K` result
 with high probability.
 
-## Repository layout
-
-```
-memory_graph/          Graph schema + extractor; constructs memory graph 𝒢
-planner/
-  init_template.py     Query Converter (NL query → (Q, C))
-  view_select.py       Plan View Selector (MemPSel)
-  compose_match.py     Plan Assembler, single-round (MemPAssem)
-  compose_match_multi.py  Multi-round assembler for WorkBench
-  twin_track.py        Plan Optimizer, single-round (MemPOpt)
-  twin_track_multi.py  Multi-round MCTS engine
-  llm_repair.py        Optional LLM-based refinement
-
-task_helper/travel/    TravelPlanner tools, evaluator, view generators
-task_helper/work/      WorkBench tools, evaluator, view generators
-baseline/              From-scratch LLM planners and history-aware baselines
-                       (ReAct two-stage, RAG, no-selection, no-MCTS, …)
-analysis/              Scalability studies and candidate-count sweeps
-artifacts/input/       Per-task configs, prompts, view library, datasets
-environment.yml        Conda environment spec
-memplan                Top-level CLI dispatcher
-```
-
-Generated outputs (memory graph, view matches, AND–OR trees, optimized plans,
-evaluation reports) are written to `artifacts/output/<task>/` (gitignored).
-
 ## Benchmarks
 
 MemPlan is evaluated on two agentic task-planning benchmarks:
